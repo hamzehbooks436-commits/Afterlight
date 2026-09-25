@@ -36,7 +36,7 @@ export class OnlineSession{
     const snapshot=await get(session.room);
     if(!snapshot.exists())throw new Error('Room not found. Check the invite code.');
     if(!snapshot.child(`members/${account.uid}`).exists()){
-      if(snapshot.child('members').numChildren()>=4)throw new Error('This room already has four players.');
+      if(snapshot.child('members').size>=4)throw new Error('This room already has four players.');
       await set(ref(database,`rooms/${code}/members/${account.uid}`),{name:session.name,joinedAt:Date.now()});
     }
     await session.start(snapshot.child('state').val());return session;
