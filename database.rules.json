@@ -1,0 +1,28 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".read": "auth != null && $room.matches(/^[A-Z2-9]{20}$/)",
+        ".write": "auth != null && $room.matches(/^[A-Z2-9]{20}$/) && !data.exists() && newData.child('owner').val() === auth.uid && newData.child('members').child(auth.uid).exists() && newData.child('state').exists()",
+        "members": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists()",
+            ".validate": "newData.hasChildren(['name', 'joinedAt']) && newData.child('name').isString() && newData.child('name').val().length <= 24 && newData.child('joinedAt').isNumber()"
+          }
+        },
+        "state": {
+          ".write": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists() && newData.exists()"
+        },
+        "presence": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('rooms').child($room).child('members').child(auth.uid).exists()",
+            ".validate": "!newData.exists() || (newData.hasChildren(['zone', 'x', 'y', 'z', 'at']) && newData.child('x').isNumber() && newData.child('y').isNumber() && newData.child('z').isNumber() && newData.child('at').isNumber())"
+          }
+        },
+        "$other": { ".write": false }
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "authoring": "Original assets made through live Blender MCP",
+  "assets": [
+    "shelter_room.glb",
+    "hospital_bed.glb",
+    "hydroponic_rack.glb",
+    "kitchen_range.glb"
+  ]
+}

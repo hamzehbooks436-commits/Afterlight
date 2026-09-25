@@ -1,0 +1,19 @@
+{
+  "authoring": "Original models created in live Blender through Blender MCP",
+  "blender": "5.2.2 LTS",
+  "assets": [
+    "survivor.glb",
+    "bunk.glb",
+    "generator.glb",
+    "water_tank.glb",
+    "workbench.glb",
+    "radio.glb",
+    "crate.glb",
+    "planter.glb",
+    "dead_tree.glb",
+    "ruin.glb",
+    "wreck.glb",
+    "mutant.glb",
+    "shelter.glb"
+  ]
+}

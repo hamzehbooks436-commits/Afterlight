@@ -1,0 +1,10 @@
+{
+  "authoring": "Original abandoned buildings created through live Blender MCP",
+  "blender": "5.2.2 LTS",
+  "assets": [
+    "ruin_rowhouse.glb",
+    "ruin_warehouse.glb",
+    "ruin_clinic.glb",
+    "ruin_fuel_station.glb"
+  ]
+}

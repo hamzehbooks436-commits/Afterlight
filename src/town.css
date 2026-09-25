@@ -1,0 +1,14 @@
+.panel.town,.panel.town-project,.panel.town-residents,.panel.town-decor,.panel.town-aid{width:min(940px,100%)}
+.town-nav,.town-actions{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.town-nav button,.town-actions button{padding:9px 12px;font-size:11px}
+.town-nav button{background:#293729}
+.town-stats,.town-supplies{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:18px 0}
+.town-stats span,.town-supplies span{min-height:56px;border:1px solid var(--line);background:#18221970;padding:11px 12px;font-size:10px;color:#aeb7a2}
+.town-stats strong,.town-supplies strong{display:block;font:600 22px 'Barlow Condensed',sans-serif;color:#e3dabd;margin-bottom:3px}
+.town-supplies{grid-template-columns:repeat(6,minmax(0,1fr))}
+.town-project-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:18px 0}
+.town-project-list button{text-align:left;padding:12px 14px;min-height:62px}
+.town-project-list strong,.town-project-list small{display:block}
+.town-project-list strong{font-size:13px;font-weight:500}
+.town-project-list small{color:#acb699;font-size:10px;line-height:1.5;margin-top:5px}
+@media(max-width:720px){.town-stats,.town-supplies{grid-template-columns:repeat(2,minmax(0,1fr))}.town-project-list{grid-template-columns:1fr}}

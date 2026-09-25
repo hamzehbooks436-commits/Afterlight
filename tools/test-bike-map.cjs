@@ -1,0 +1,45 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
+ const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ const check=(name,value)=>{assert.ok(value,name);console.log('PASS',name);};
+ try{
+ await page.goto('http://127.0.0.1:5173/',{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__afterlight?.world?.state);
+ await page.evaluate(()=>{const a=__afterlight;a.state.field.settings.sound=false;a.actions.depart(a.state);a.refresh();a.resumeForTest();a.state.minute=720;});
+ await page.waitForTimeout(200);
+ check('nearby map uses a player-centred local window',await page.locator('#minimap svg').evaluate(e=>{const v=e.viewBox.baseVal;return v.width<125&&v.height<100;}));
+ const result=await page.evaluate(()=>{const a=__afterlight,w=a.world,b=a.state.field.bike;w.player.position.set(b.x,b.y,b.z+2);a.state.field.yaw=0;a.state.field.pitch=-.3;w.syncCamera(0);return {target:w.nearest()?.id,bike:!!w.bike,front:!!w.bike.getObjectByName('wheel_front')};});
+ check('Blender bike is present and interactable near Shelter 07',result.bike&&result.front&&result.target==='bike');
+ await page.screenshot({path:'art/qa/bike-parked.png'});
+ await page.keyboard.press('e');
+ check('E mounts the bicycle',await page.evaluate(()=>__afterlight.world.riding));
+ const ride=await page.evaluate(()=>{const w=__afterlight.world,p=w.player.position.clone();for(let i=0;i<90;i++)w.update(1/60,i/60,new Set(['KeyW']));return {distance:p.distanceTo(w.player.position),speed:w.bikeSpeed,gun:w.gun.visible};});
+ check('pedalling accelerates and moves the bike, hiding the weapon',ride.distance>3&&ride.speed>3&&!ride.gun);
+ const steer=await page.evaluate(()=>{const w=__afterlight.world,yaw=w.state.field.bike.yaw;for(let i=0;i<20;i++)w.update(1/60,2,new Set(['KeyW','KeyA']));return w.state.field.bike.yaw-yaw;});
+ check('A steers the bicycle',steer>.1);
+ const brake=await page.evaluate(()=>{const w=__afterlight.world;for(let i=0;i<60;i++)w.update(1/60,3,new Set(['Space']));return w.bikeSpeed;});
+ check('Space stops the bike without jumping',brake===0&&await page.evaluate(()=>__afterlight.world.player.position.y<.3));
+ await page.screenshot({path:'art/qa/bike-riding.png'});
+ await page.keyboard.press('e');check('E dismounts safely',await page.evaluate(()=>!__afterlight.world.riding));
+ const parked=await page.evaluate(()=>({...__afterlight.state.field.bike}));
+ await page.keyboard.press('m');await page.getByRole('button',{name:'Centre on me',exact:true}).click();
+ check('centre control zooms to player',await page.locator('.full-map').evaluate(e=>e.style.getPropertyValue('--map-zoom')==='4'));
+ await page.locator('.map-destination-picker summary').click();await page.locator('button[data-action="map-destination"][data-id="azure"]').click();check('destination sets a waypoint',await page.evaluate(()=>!!__afterlight.state.field.waypoint));
+ await page.getByRole('button',{name:'400%',exact:true}).click();check('reset clears zoom and pan',await page.locator('.full-map').evaluate(e=>e.style.getPropertyValue('--map-zoom')==='1'&&e.style.getPropertyValue('--map-pan-x')==='0px'));
+ await page.locator('.map-destination-picker summary').click();await page.waitForTimeout(250);await page.screenshot({path:'art/qa/navigation-map.png'});
+ await page.keyboard.press('m');check('M closes map',await page.locator('.panel.map').count()===0);
+ await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));await page.reload({waitUntil:'networkidle'});await page.waitForFunction(()=>window.__afterlight?.world?.state);
+ check('parking position and waypoint survive browser reload',await page.evaluate(b=>JSON.stringify(__afterlight.state.field.bike)===JSON.stringify(b)&&!!__afterlight.state.field.waypoint,parked));
+ await page.evaluate(()=>__afterlight.resumeForTest());await page.keyboard.press('m');await page.getByRole('button',{name:'Clear marker'}).click();check('clear removes waypoint',await page.evaluate(()=>!__afterlight.state.field.waypoint));
+ const point=await page.locator('.full-map svg').evaluate(svg=>{const p=new DOMPoint(350,280).matrixTransform(svg.getScreenCTM());return {x:p.x,y:p.y};});
+ await page.mouse.click(point.x,point.y);check('clicking land places an accurate map marker',await page.evaluate(async()=>{const A=await import('/src/archipelago.js'),p=A.imagePoint(__afterlight.state.field.waypoint);return Math.abs(p[0]-350)<1&&Math.abs(p[1]-280)<1;}));
+ const before=await page.evaluate(()=>JSON.stringify(__afterlight.state.field.waypoint));
+ await page.mouse.move(point.x,point.y);await page.mouse.wheel(0,-500);await page.waitForTimeout(250);check('mouse wheel zooms the map',await page.locator('.full-map').evaluate(e=>Number(e.style.getPropertyValue('--map-zoom'))>1));
+ await page.mouse.move(point.x,point.y);await page.mouse.down();await page.mouse.move(point.x+55,point.y+20,{steps:6});await page.mouse.up();check('drag pans without replacing the waypoint',await page.evaluate(old=>JSON.stringify(__afterlight.state.field.waypoint)===old,before));
+ await page.keyboard.press('m');await page.keyboard.press('h');check('hide HUD also hides the minimap',await page.locator('#minimap').evaluate(e=>getComputedStyle(e).display==='none'));await page.keyboard.press('h');await page.keyboard.press('m');
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:'art/qa/navigation-mobile.png'});check('map fits mobile viewport',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ check('no browser runtime errors',errors.length===0);
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exit(1);});

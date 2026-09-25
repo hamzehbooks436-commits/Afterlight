@@ -1,0 +1,13 @@
+{
+  "authoring": "Original first-person assets created in live Blender through Blender MCP",
+  "blender": "5.2.2 LTS",
+  "assets": [
+    "ruin_tenement.glb",
+    "ruin_store.glb",
+    "scavenger_pistol.glb",
+    "service_rifle.glb",
+    "scrap_pipe.glb",
+    "rubble_cluster.glb",
+    "fallout_barrel.glb"
+  ]
+}

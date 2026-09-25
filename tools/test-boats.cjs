@@ -1,0 +1,62 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+
+(async()=>{
+  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'chrome',headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
+  const page=await browser.newPage();
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  try{
+    await page.goto('http://127.0.0.1:5173/',{waitUntil:'networkidle'});
+    await page.waitForFunction(()=>window.__afterlight?.world?.state);
+    const result=await page.evaluate(async()=>{
+      const a=window.__afterlight,A=await import('/src/archipelago.js');
+      a.actions.depart(a.state);a.world.setZone(a.state);
+      const w=a.world,s=a.state,boat=s.field.boats.holloway;
+      const allBoats=w.boats.map(item=>item.id);
+      const pier=A.HOLLOWAY_PIER;
+      w.player.position.set(boat.x-2,0,boat.z);s.field.yaw=-Math.PI/2;s.field.pitch=-.25;w.syncCamera(0);
+      const target=w.nearest()?.id;
+      const boarded=w.toggleBoat('holloway');
+      const start={x:boat.x,z:boat.z};
+      for(let i=0;i<100;i++)w.update(.05,i*.05,new Set(['KeyW']),false);
+      const moved=Math.hypot(boat.x-start.x,boat.z-start.z);
+      const water=A.isNavigableWater(boat.x,boat.z);
+      const midWaterExit=w.toggleBoat('holloway');
+      Object.assign(boat,{x:start.x,z:start.z,yaw:Math.PI});
+      w.player.position.set(boat.x,-1.5,boat.z);
+      const dockExit=w.toggleBoat('holloway');
+      const dockWalkable=A.isWalkable(w.player.position.x,w.player.position.z);
+      w.player.position.set(pier[1].x,-1.5,pier[1].z+10);
+      s.position={x:w.player.position.x,y:w.player.position.y,z:w.player.position.z};
+      for(let i=0;i<10;i++)w.update(.05,i*.05,new Set(['KeyW']),false);
+      const swimming=s.field.swimming,swimPosition={...s.position};
+      const restored=a.actions.restoreCampaign(s);
+      const azure=s.field.boats.azure_1;
+      w.player.position.set(azure.x-1.5,0,azure.z);s.field.swimming=false;
+      const azureBoarded=w.toggleBoat('azure_1');
+      const azureStart={x:azure.x,z:azure.z};
+      for(let i=0;i<60;i++)w.update(.05,i*.05,new Set(['KeyW']),false);
+      const azureMoved=Math.hypot(azure.x-azureStart.x,azure.z-azureStart.z);
+      const boatSave=a.actions.restoreCampaign(s);
+      w.setZone(boatSave);
+      return {allBoats,target,boarded,moved,water,midWaterExit,dockExit,dockWalkable,swimming,swimPosition,restoredSwimming:restored.field.swimming,restoredWater:A.isNavigableWater(restored.position.x,restored.position.z),azureBoarded,azureMoved,restoredBoat:w.activeBoat,boatPosition:boatSave.position,azurePosition:boatSave.field.boats.azure_1};
+    });
+    assert.deepEqual(result.allBoats,['holloway','azure_1','azure_2','azure_3']);
+    assert.equal(result.target,'holloway');
+    assert.equal(result.boarded,true);
+    assert.ok(result.moved>5);
+    assert.equal(result.water,true);
+    assert.equal(result.midWaterExit,false);
+    assert.equal(result.dockExit,true);
+    assert.equal(result.dockWalkable,true);
+    assert.equal(result.swimming,true);
+    assert.equal(result.restoredSwimming,true);
+    assert.equal(result.restoredWater,true);
+    assert.equal(result.azureBoarded,true);
+    assert.ok(result.azureMoved>2);
+    assert.equal(result.restoredBoat,'azure_1');
+    assert.ok(Math.hypot(result.boatPosition.x-result.azurePosition.x,result.boatPosition.z-result.azurePosition.z)<.1);
+    assert.deepEqual(errors,[]);
+    console.log('PASS Stary Sands pier, four usable boats, movement, docking, swimming, and save recovery');
+  }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});
