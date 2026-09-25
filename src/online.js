@@ -49,9 +49,8 @@ export class OnlineSession{
       if(JSON.stringify(incoming)===JSON.stringify(this.baseline))return;
       this.baseline=structuredClone(incoming);this.onShared(incoming);
     },error=>this.onStatus(error.message)));
-    this.unsub.push(onValue(ref(database,`rooms/${this.code}/presence`),snap=>this.onPeers(snap.val()||{}),error=>this.onStatus(error.message)));
-    this.unsub.push(onValue(ref(database,`rooms/${this.code}/members`),snap=>this.onStatus(`${snap.size}/4 survivors online`),error=>this.onStatus(error.message)));
-    await onDisconnect(this.presence).remove();
+    this.unsub.push(onValue(ref(database,`rooms/${this.code}/presence`),snap=>{const peers=snap.val()||{};this.onPeers(peers);this.onStatus(`${Object.keys(peers).length}/4 survivors online`);},error=>this.onStatus(error.message)));
+    onDisconnect(this.presence).remove().catch(error=>this.onStatus(`Presence cleanup unavailable: ${error.message}`));
   }
   async publishState(state){
     if(this.closed||!this.baseline)return;
